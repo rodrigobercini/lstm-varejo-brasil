@@ -1,4 +1,4 @@
-# Prevendo a Pesquisa Mensal do Comércio com um modelo de Long Short-Term Memory
+# Modelo Long Short-Term Memory (LSTM) para Pesquisa Mensal do Comércio (PMC)
 
 Este repositório aplica uma rede neural recorrente (RNN) através de um modelo LSTM para tentar prever o comportamente da Pesquisa Mensal do Comércio fornecida pelo IBGE
 
