@@ -18,4 +18,6 @@ Este repositório aplica uma rede neural recorrente (RNN) através de um modelo 
 
 ### Previsão para futuro sem controle de validação
 
+O modelo conseguiu capturar a sazonalidade da série história na previsão para o futuro. 
+
 ![](3.png)
