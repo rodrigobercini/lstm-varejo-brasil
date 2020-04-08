@@ -1,2 +1,13 @@
-# ml-varejo-brasil
-Utilização de Recurrent Neural Networks para previsão da Pesquisa Mensal do Comércio
+# Prevendo a Pesquisa Mensal do Comércio com Recurrent Neural Networks
+
+## PMC
+
+![](1.png)
+
+## Prevendo segmento teste
+
+![](2.png)
+
+## Forecasting
+
+![](3.png)
