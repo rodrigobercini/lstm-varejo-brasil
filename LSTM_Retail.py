@@ -35,10 +35,13 @@ Scraping data from IBGE, organizing columns and rows, converting dates into date
 # Import csv from IBGE website
 df = pd.read_csv('https://sidra.ibge.gov.br/geratabela?format=us.csv&name=tabela3416.csv&terr=N&rank=-&query=t/3416/n1/all/v/564/p/all/c11046/40311/d/v564%201/l/v,c11046,t%2Bp',
                  skiprows=3, index_col=1)
+
 # Drops unwanted column
 df = df.drop(['Unnamed: 0'], axis=1) 
+
 # Drops metadata at the end of the dataframe
 df = df[:-10] 
+
 # Converts dates into datetime (they were originally in hardcoded Portuguese)
 df['date'] = df.index
 new = df["date"].str.split(" ", n = 1, expand = True) 
@@ -65,26 +68,27 @@ df['Date'] = df['Month'] + '/'+ df['Year']
 df['Date'] = pd.to_datetime(df['Date'])
 df.index = df['Date']
 df = df.drop(['Month', 'Year', 'Date'], axis=1)
+
 # Renaming column
 df.columns = ['Retail Sales Index - Brazil - 2014=100']
 
 # Plotting Time Series
-plt.style.use('seaborn-dark-palette')
-fig = plt.figure(figsize=(10,6))
-ax = fig.add_subplot(111) 
-ax.plot(df['Retail Sales Index - Brazil - 2014=100'])
-plt.title('Retail Sales Index - Brazil - 2014=100', fontsize=20)
+plt.style.use('seaborn-whitegrid')
+df.plot(figsize=(10,6))
 
 """# Splitting and creating a gridsearch pipeline"""
 
 # Creating a 24 months test size 
 test_size = 24
+
 # Length of Batches, 12 months = 1 year to capture seasonality
 length = 12
 test_ind = len(df) - test_size
+
 # Spliting the data
 train = df.iloc[:test_ind]
 test = df.iloc[test_ind:]
+
 # Scaling the Data
 scaler = MinMaxScaler()
 scaled_train = scaler.fit_transform(train)
@@ -139,34 +143,42 @@ def train_test(h_units, h_dropout, h_optimizer):
   # Returns prediction RMSE (Root Mean Square Error)
   return rmse, losses, real_vs_pred
 
-# Gridsearching hyperparameters
+# GRIDSEARCH
+# Hyperparameters List
 unitlist = [128, 172, 256]
 droplist = [0.1, 0.2, 0.3]
 optimizerlist = ['adam', 'rmsprop']
 
+# Initialising grid dictionaries
 grid_rmse = {}
 grid_losses = {}
 grid_real_pred = {}
+
+# Running the models
 for unit in unitlist:
   for drop in droplist:
     for optim in optimizerlist:
+      # Fetching results from the model
       model_rmse, losses_df, real_vs_pred = train_test(unit, drop, optim)
+      
+      # Adding results to the dictionaries
       current_model = '{} units, {} dropout, {} optimizer, {} epochs'.format(unit,drop,optim, len(losses_df))
       grid_rmse[current_model] = model_rmse
       grid_losses[current_model] = losses_df
       grid_real_pred[current_model] = real_vs_pred
+
       nr_of_models = str(len(unitlist)*len(droplist)*len(optimizerlist))
       print(str(len(grid_rmse.items())) + " out of " + nr_of_models)
 
+# Selecting best model based on RMSE
 grid_rmse_df = pd.DataFrame.from_dict(grid_rmse.items())
 best_model = grid_rmse_df.sort_values(by=1)[0].iloc[0]
 print(best_model)
 
-plt.style.use('seaborn-dark-palette')
-grid_losses[best_model].plot()
+grid_losses[best_model].plot(title='Loss and validation loss throughout epochs')
 
-plt.style.use('seaborn-dark-palette')
-grid_real_pred[best_model].plot(figsize = (10,6))
+grid_real_pred[best_model].plot(figsize = (10,6), title='Real vs Predicted')
+plt.grid(None)
 
 grid_real_pred[best_model]
 
@@ -179,6 +191,7 @@ Forecasting into the unknown future (12 months)
 full_scaler = MinMaxScaler()
 scaled_full_data = full_scaler.fit_transform(df)
 length = 12
+
 # Generator
 generator = TimeseriesGenerator(scaled_full_data, scaled_full_data,
                                 length=length, batch_size=1)
@@ -197,8 +210,8 @@ model.fit(generator, epochs=17)
 
 # Forecasting the unknown future
 forecast = []
-periods = 12
-first_eval_batch = scaled_train[-length:]
+periods = 14
+first_eval_batch = scaled_full_data[-length:]
 current_batch = first_eval_batch.reshape((1,length,n_features))
 
 # Updating batches with predicted values
@@ -216,8 +229,8 @@ forecast_index = pd.date_range(start='2020-03-01', periods=periods,
 forecast_df = pd.DataFrame(data=forecast, index=forecast_index,
                            columns=['Forecast'])
 
-# Plotting
+# Plotting forecast
 ax = df.plot(figsize=(10, 6))
-forecast_df.plot(ax=ax, figsize=(10, 6))
-plt.xlim('2016-01-01','2021-03-01')
-plt.ylim(60,130)
+forecast_df.plot(ax=ax, figsize=(10, 6), title=('14 months Forecast'))
+plt.xlim('2010-01-01','2021-05-01')
+plt.tight_layout()
